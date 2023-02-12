@@ -21,7 +21,6 @@ df = pd.read_csv("DailyDelhiClimateTrain.csv", delimiter=",")
 series = TimeSeries.from_dataframe(df, "date", ["meantemp", "humidity", "wind_speed", "meanpressure"])
 
 #%%
-
 #sns.lineplot(df, x = "DATE", y = "IPG2211A2N")
 fig = make_subplots(
             rows=2, cols=1,
@@ -33,6 +32,16 @@ fig.add_trace(go.Scatter(x = df["date"], y = df["humidity"], mode="lines"), row=
 fig.show()
 
 #%%
-
 fig = px.scatter(df, x = "meantemp", y="humidity")
 fig.show()
+
+#%%
+fig = px.scatter_matrix(df)
+fig.show()
+
+#%%
+#not okay
+pd.plotting.lag_plot(df["humidity"], lag=1)
+
+#%%
+pd.plotting.autocorrelation_plot(df["meantemp"])

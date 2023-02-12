@@ -26,15 +26,20 @@ io.renderers.default='svg'
 #%%
 sns.lineplot(df, x = "DATE", y = "IPG2211A2N")
 #fig =px.line(df, x = "DATE", y = "IPG2211A2N")
-#fig.show()
+#ig.show()
 #%%
 sns.lineplot(df, x = "month", y = "IPG2211A2N", hue = "year")
 #fig =px.line(df, x = "month", y = "IPG2211A2N", color = "year")
 #fig.show()
+
 #%%
 sns.lineplot(df, x = "year", y = "IPG2211A2N", hue = "month")
-fig =px.line(df, x = "year", y = "IPG2211A2N", color = "month")
-fig.show()
+#fig =px.line(df, x = "year", y = "IPG2211A2N", color = "month")
+#fig.show()
+#%%
+sns.lineplot(df, x = "year", y = "IPG2211A2N", hue = "month")
+#fig =px.line(df, x = "year", y = "IPG2211A2N", color = "month")
+#fig.show()
 #%%
 df["month2"] = df["month"].astype(str)
 fig = px.line_polar(df, r='IPG2211A2N', theta='month2', 

@@ -19,11 +19,12 @@ df = pd.read_csv("DailyDelhiClimateTrain.csv", delimiter=",")
 
 # Create a TimeSeries, specifying the time and value columns
 series = TimeSeries.from_dataframe(df, "date", ["meantemp", "humidity", "wind_speed", "meanpressure"])
+import plotly.io as io
+io.renderers.default='svg'
 
 #%%
-#sns.lineplot(df, x = "DATE", y = "IPG2211A2N")
 fig = make_subplots(
-            rows=2, cols=1,
+            rows=2, coºls=1,
             subplot_titles=("Mean temperature", "Humidity"),
             shared_xaxes=True,
             vertical_spacing =0.3)

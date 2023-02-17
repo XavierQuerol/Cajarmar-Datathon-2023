@@ -23,6 +23,7 @@ df["year"] = df["DATE"].dt.year
 
 import plotly.io as io
 io.renderers.default='svg'
+#io.renders.default='browser'
 #%%
 sns.lineplot(df, x = "DATE", y = "IPG2211A2N")
 #fig =px.line(df, x = "DATE", y = "IPG2211A2N")

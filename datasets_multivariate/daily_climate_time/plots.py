@@ -21,6 +21,7 @@ df = pd.read_csv("DailyDelhiClimateTrain.csv", delimiter=",")
 series = TimeSeries.from_dataframe(df, "date", ["meantemp", "humidity", "wind_speed", "meanpressure"])
 import plotly.io as io
 io.renderers.default='svg'
+#io.renders.default='browser'
 
 #%%
 fig = make_subplots(

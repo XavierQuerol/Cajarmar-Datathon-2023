@@ -29,9 +29,8 @@ series_transformed = scaler.transform(series)
 
 
 models = []
-#models.append(Prophet())
-models.append(TCNModel(input_chunk_length=14, output_chunk_length=2, 
-             kernel_size = 5, n_epochs=20))
+models.append(Prophet())
+#models.append(TCNModel(input_chunk_length=14, output_chunk_length=2, kernel_size = 5, n_epochs=20))
 #models.append(RNNModel(input_chunk_length=14))
 #models.append(TransformerModel(input_chunk_length=14, output_chunk_length=2))
 

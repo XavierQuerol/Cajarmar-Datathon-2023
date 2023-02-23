@@ -38,16 +38,11 @@ import plotly.express as px
 import plotly.io as io
 io.renderers.default='browser'
 
-fig = make_subplots(
-            rows=2, cols=1,
-            subplot_titles=("Mean temperature", "Humidity"),
-            shared_xaxes=True,
-            vertical_spacing =0.3)
+fig = go.Figure()
 
 for i, year in enumerate(df["year"].unique()):
     df2 = df[df["year"]==year]
-    fig.add_trace(go.Scatter(x = df2["x"], y = df2["y"], mode="lines"), row=1, col=1)
-
+    fig.add_trace(go.Scatter3d(x = df2["x"], y = df2["y"], z = df2["z"], mode="lines", line={"width":5}))
 
 #fig = px.line_3d(df, x="x", y="y", z="z")
 fig.show()

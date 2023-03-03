@@ -8,8 +8,7 @@ Created on Fri Mar  3 01:33:56 2023
 import torch
 
 def test(model, device, test_loader, MSELoss):
-    correct = 0
-    total = 0
+
     loss = 0
     # Iterate through test dataset
     with torch.no_grad():
@@ -20,6 +19,5 @@ def test(model, device, test_loader, MSELoss):
             output = model(data)
             loss += MSELoss(output.view([-1]), target)
 
-        loss = loss / batch_idx
         
-        return loss
+        return loss.item()/batch_idx

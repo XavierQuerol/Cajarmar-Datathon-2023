@@ -12,9 +12,11 @@ class Net(nn.Module):
     def __init__(self):
         super().__init__()
         self.layers = nn.Sequential(
-          nn.Linear(1453, 2000),
+          nn.Linear(1453, 1000),
           nn.ReLU(),
-          nn.Linear(2000, 1000),
+          nn.Linear(1000, 1000),
+          nn.ReLU(),
+          nn.Linear(1000, 1000),
           nn.ReLU(),
           nn.Linear(1000, 1000),
           nn.ReLU(),
@@ -22,8 +24,10 @@ class Net(nn.Module):
           nn.ReLU(),
           nn.Linear(100,  1)
         )
+        
+        
     
     def forward(self, x):
         return self.layers(x)
         
-        
+summary(Net())

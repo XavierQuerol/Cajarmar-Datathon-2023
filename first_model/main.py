@@ -51,7 +51,7 @@ optimizer = optim.Adam(model.parameters(), lr=lr)
 epochs = 50
 
 #optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
-#scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.33)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)
 #scheduler = optim.lr_scheduler.OneCycleLR(optimizer, lr, epochs=epochs, steps_per_epoch=len(validation_loader))
 
 loss_history_train = []
@@ -66,7 +66,9 @@ loss_function= nn.MSELoss()
 for epoch in range(epochs):
     loss_train = train(model, device, dataloader_train, optimizer, epoch, loss_function)
     loss_validation = test(model, device, dataloader_validation, loss_function)
- 
+                
+    if scheduler:
+        scheduler.step()
     print('Epoch: {} \tTrainLoss: {:.6f}\tValidationLoss: {:.6f}'.format(
         epoch, 
         loss_train,

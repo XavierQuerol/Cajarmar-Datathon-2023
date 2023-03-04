@@ -12,10 +12,7 @@ import pandas as pd
 
 class MyDataset(Dataset):
  
-  def __init__(self,df):
- 
-    x=df.iloc[:,:-1].values
-    y=df.iloc[:,-1].values
+  def __init__(self, x, y):
  
     self.x_train=torch.tensor(x,dtype=torch.float32)
     self.y_train=torch.tensor(y,dtype=torch.float32)

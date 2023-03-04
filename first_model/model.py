@@ -14,15 +14,17 @@ class Net(nn.Module):
         self.layers = nn.Sequential(
           nn.Linear(1453, 1000),
           nn.ReLU(),
-          nn.Linear(1000, 1000),
-          nn.ReLU(),
-          nn.Linear(1000, 1000),
-          nn.ReLU(),
+          #nn.Linear(1000, 1000),
+          #nn.ReLU(),
+          #nn.Linear(1000, 1000),
+          #nn.ReLU(),
           nn.Linear(1000, 1000),
           nn.ReLU(),
           nn.Linear(1000, 100),
           nn.ReLU(),
-          nn.Linear(100,  1)
+          nn.Linear(100,  20),
+          nn.ReLU(),
+          nn.Linear(20,  1)
         )
         
         

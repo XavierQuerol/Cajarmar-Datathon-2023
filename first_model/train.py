@@ -22,7 +22,7 @@ def train(model, device, train_loader, optimizer, epoch, loss_function):
         output = model(data)
         loss=0.0
         
-        loss = loss_function(output.view([-1]), target)
+        loss = loss_function(output, target)
         
         optimizer.zero_grad()
         loss.backward()

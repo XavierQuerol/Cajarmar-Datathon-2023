@@ -17,7 +17,7 @@ def test(model, device, test_loader, MSELoss):
             data = x.to(device)
             target = y.to(device)
             output = model(data)
-            loss += MSELoss(output.view([-1]), target)
+            loss += MSELoss(output, target)
 
         
         return loss.item()/batch_idx

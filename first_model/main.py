@@ -6,6 +6,9 @@ Created on Fri Mar  3 00:31:23 2023
 """
 import pandas as pd
 import matplotlib.pyplot as plt
+import category_encoders as ce
+from sklearn.preprocessing import StandardScaler
+
 
 import torch
 import torch.nn as nn
@@ -22,11 +25,24 @@ from testing import test
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"   
 
+## Read dataset
+df = pd.read_csv("./datasets/D_T_3.csv")
 
-df = pd.read_csv("./datasets/D_T_encoded_3.csv")
+## Encoding
+encoder = ce.OneHotEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "VARIEDAD", "ALTITUD"])
+df_encoded = encoder.fit_transform(df)
+
+
+#X,Y
+x=df_encoded.drop(axis = 1, columns = ["PRODUCCION"])
+y=df_encoded.loc[:,["PRODUCCION"]]
+
+## Normalization
+normalizer = StandardScaler()
+norm_x = normalizer.fit_transform(x)
 
 ## Dataset creation
-dataset = MyDataset(df)
+dataset = MyDataset(norm_x, y.values)
 dataset_train, dataset_validation = random_split(dataset, [0.8, 0.2], generator=torch.Generator().manual_seed(42))
 
 ## Dataloader creation
@@ -46,7 +62,7 @@ model.apply(initialize_weights)
 
 
 ## Hyperparameters definition
-lr = 1e-4
+lr = 1e-2
 optimizer = optim.Adam(model.parameters(), lr=lr)
 epochs = 50
 

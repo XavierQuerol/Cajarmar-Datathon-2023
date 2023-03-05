@@ -26,20 +26,24 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"   
 
 ## Read dataset
-df = pd.read_csv("./datasets/D_T_3.csv")
-
+df = pd.read_csv("../ds_tractats/df_train_tractat.csv")
+df = df.astype({"CAMPAÑA": str, "ID_FINCA": str, "ID_ZONA": str, "ID_ESTACION": str, "ALTITUD": str, "VARIEDAD": str, "MODO": int, "TIPO": int, "COLOR": int})
+df = df.drop(columns="CAMPAÑA")
 ## Encoding
 encoder = ce.OneHotEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "VARIEDAD", "ALTITUD"])
 df_encoded = encoder.fit_transform(df)
-
 
 #X,Y
 x=df_encoded.drop(axis = 1, columns = ["PRODUCCION"])
 y=df_encoded.loc[:,["PRODUCCION"]]
 
 ## Normalization
-normalizer = StandardScaler()
-norm_x = normalizer.fit_transform(x)
+def transform(dataset, columns):
+    for c in columns:
+        dataset[c] = (dataset[c] - dataset[c].mean()) / dataset[c].std()
+    return dataset
+
+norm_x = transform(x, ["SUPERFICIE", "ALTITUD_MIN", "ALTITUD_DIF"]).values
 
 ## Dataset creation
 dataset = MyDataset(norm_x, y.values)
@@ -60,6 +64,9 @@ def initialize_weights(m):
 # Applying it to our net
 model.apply(initialize_weights)
 
+for name, param in model.named_parameters():
+    if str(name) == "last_layer.bias":
+        param.data =torch.Tensor([df["PRODUCCION"].mean()])
 
 ## Hyperparameters definition
 lr = 1e-2
@@ -98,7 +105,12 @@ for epoch in range(epochs):
     plt.show()
 
 
+#%%
+
+loss_validation = test(model, device, dataloader_validation, loss_function)
+
 #%% DESAR WEIGHTS MODEL
 
 PATH = r"trained_models/"
 torch.save(model.state_dict(), PATH + "model1.pth")
+

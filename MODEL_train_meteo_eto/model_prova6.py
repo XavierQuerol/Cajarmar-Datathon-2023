@@ -132,4 +132,4 @@ class Net(nn.Module):
         
         return x
     
-#summary(Net())
+summary(Net())

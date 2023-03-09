@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  7 17:20:42 2023
+Created on Wed Mar  8 07:40:28 2023
 
 @author: xavid
 """
@@ -16,7 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import category_encoders as ce
 from sklearn.preprocessing import StandardScaler
-import  sys
+import sys
 import time
 
 
@@ -27,13 +27,15 @@ from torch.utils.data import DataLoader, random_split
 
 
 from dataset import MyDataset
-from model_prova8 import Net
+from model7 import Net
 from train import train
 from testing import test
 from read_tables import read_tables
 
-file1 = "../ds_tractats/df_train_tractat.csv"
-file2 = "../ds_tractats/df_meteo_eto_57features.csv"
+file1 = "/home/caos/datathon/MODEL_train_meteo_eto/datasets/df_train_tractat.csv"
+#file2 = "/home/caos/datathon/MODEL_train_meteo_eto/datasets/df_meteo_eto.csv"
+file2 = "/home/caos/datathon/MODEL_train_meteo_eto/datasets/df_meteo_eto_57features.csv"
+
 df = pd.read_csv(file1)
 df = df.astype({"CAMPAÑA": str, "ID_FINCA": str, "ID_ZONA": str, "ID_ESTACION": str, "ALTITUD": str, "VARIEDAD": str, "MODO": int, "TIPO": int, "COLOR": int})
 
@@ -60,33 +62,20 @@ def transform(dataset, columns):
 
 norm_x = transform(x, ["SUPERFICIE", "ALTITUD_MIN", "ALTITUD_DIF"])
 
-mode = "year21"
-## Dataset creation
-if mode == "random":
-    norm_x = norm_x.drop(columns="CAMPAÑA")
-    dataset = MyDataset(norm_x.values, y.values, df_year_estacion, df_year_estacion_mostres)
-    dataset_train, dataset_validation = random_split(dataset, [0.8, 0.2], generator=torch.Generator().manual_seed(42))
 
-elif mode == "year21":
-    x_train = norm_x.loc[x["CAMPAÑA"] != "21"]
-    y_train = y.loc[x["CAMPAÑA"] != "21"]
-    x_test = norm_x.loc[x["CAMPAÑA"] == "21"]
-    y_test = y.loc[x["CAMPAÑA"] == "21"]
-
-    x_train = x_train.drop(columns="CAMPAÑA")
-    x_test = x_test.drop(columns="CAMPAÑA")
-    dataset_train = MyDataset(x_train.values, y_train.values, df_year_estacion, df_year_estacion_mostres)
-    dataset_validation = MyDataset(x_test.values, y_test.values, df_year_estacion, df_year_estacion_mostres)
-
+x_train = norm_x
+y_train = y
+dataset_train = MyDataset(x_train.values, y_train.values, df_year_estacion, df_year_estacion_mostres)
+    
+    
 ## Dataloader creation
-dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
-dataloader_validation = DataLoader(dataset_validation, batch_size=32, shuffle=False)
+dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers = 1)
 
 #%%
 
-
-torch.cuda.empty_cache()
-model = Net("cpu")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#torch.cuda.empty_cache()
+model = Net(device)
 
 def initialize_weights(m):
     if isinstance(m, nn.Linear):
@@ -106,54 +95,42 @@ optimizer = optim.Adam(model.parameters(), lr=lr)
 epochs = 50
 
 #optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
-#scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.33)
 #scheduler = optim.lr_scheduler.OneCycleLR(optimizer, lr, epochs=epochs, steps_per_epoch=len(validation_loader))
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+#scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
 loss_history_train = []
 loss_history_validation = []
 
 # set device
-torch.cuda.empty_cache()
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = model.to(device)
 loss_function= nn.MSELoss() 
 
-file_to_write = f"./loss{1}.txt"
-image_to_write = f"./plot{1}.png"
+file_to_write = f"/home/caos/datathon/execution_losses/loss{sys.argv[1]}.txt"
+image_to_write = f"/home/caos/datathon/execution_plots/plot{sys.argv[1]}.png"
 for epoch in range(epochs):
     loss_train = train(model, device, dataloader_train, optimizer, epoch, loss_function)
-    loss_validation = test(model, device, dataloader_validation, loss_function)
                 
     if scheduler:
         scheduler.step()
-    print('Epoch: {} \tTime: {} \tTrainLoss: {:.6f}\tValidationLoss: {:.6f}'.format(
+    print('Epoch: {} \tTime: {} \tTrainLoss: {:.6f}'.format(
         epoch, 
         time.strftime('%H:%M:%S'),
-        loss_train,
-        loss_validation
+        loss_train
         ))
     f = open(file_to_write, "a")
-    f.write('Epoch: {} \tTime: {} \tTrainLoss: {:.6f}\tValidationLoss: {:.6f}\n'.format(
+    f.write('Epoch: {} \tTime: {} \tTrainLoss: {:.6f}\n'.format(
         epoch, 
         time.strftime('%H:%M:%S'),
-        loss_train,
-        loss_validation
+        loss_train
         ))
     f.close()
 
     loss_history_train.append(loss_train)
-    loss_history_validation.append(loss_validation)
     plt.plot(range(len(loss_history_train)), loss_history_train)
     plt.plot(range(len(loss_history_validation)), loss_history_validation)
     plt.savefig(image_to_write)
-    
-    PATH = r"trained_models/"
-    torch.save(model.state_dict(), PATH + "model1.pth")
 
-#%% DESAR WEIGHTS MODEL
-
-PATH = r"trained_models/"
-torch.save(model.state_dict(), PATH + "model1.pth")
+    PATH = r"/home/caos/datathon/MODEL_train_meteo_eto/models/"
+    torch.save(model.state_dict(), PATH + "model7withDO.pth")

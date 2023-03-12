@@ -13,7 +13,7 @@ class Net(nn.Module):
     def __init__(self):
         super().__init__()
         self.layers = nn.Sequential(
-          nn.Linear(10*365, 2000),
+          nn.Linear(10*(365-240), 2000),
           nn.ReLU(),
           nn.Linear(2000, 1000),
           nn.ReLU(),

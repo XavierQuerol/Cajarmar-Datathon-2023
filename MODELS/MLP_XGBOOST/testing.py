@@ -23,4 +23,4 @@ def test(model, device, test_loader, MSELoss):
             loss += MSELoss(output.view([-1]), target)
 
         
-        return loss.item()/batch_idx
+        return loss.item()

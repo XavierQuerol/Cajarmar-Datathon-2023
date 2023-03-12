@@ -53,17 +53,24 @@ df_year_estacion = read_tables(fitxer)
 taula_pca = pca_func(df_year_estacion, pdf_fitted)
 
 
-df_year_estacion_mostres = "20" + df_train["CAMPAÑA"].astype(str)+ "_" + df_train["ID_ESTACION"].astype(str)
 
-
-
-X = df_train.drop(columns = ["PRODUCCION", "CAMPAÑA"])
+X = df_train.drop(columns = ["PRODUCCION"])
+X["ID_ESTACION2"] = X["ID_ESTACION"]
 y = df_train["PRODUCCION"]
+
 
 X_train, X_test, y_train, y_test = train_test_split(X, 
                                                     y, 
                                                     test_size = 0.2, 
-                                                    random_state = 0)
+                                                    random_state = 2)
+
+df_X_train = pd.DataFrame(X_train, columns = X.columns)
+df_X_test = pd.DataFrame(X_test, columns = X.columns)
+df_year_estacion_mostres_train = "20" + df_X_train["CAMPAÑA"].astype(str)+ "_" + df_X_train["ID_ESTACION2"].astype(str)
+df_year_estacion_mostres_test = "20" + df_X_test["CAMPAÑA"].astype(str)+ "_" + df_X_test["ID_ESTACION2"].astype(str)
+
+df_X_train = df_X_train.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+df_X_test = df_X_test.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
 
 ## XGBOOST
 
@@ -77,11 +84,11 @@ model = xgb.XGBRegressor(
     colsample_bytree = 0.4,
     n_jobs = -1)
 
-model.fit(X_train, y_train)
+model.fit(df_X_train, y_train)
 
-y_train_xgboost = model.predict(X_train)
+y_train_xgboost = model.predict(df_X_train)
 
-y_test_xgboost = model.predict(X_test)
+y_test_xgboost = model.predict(df_X_test)
 
 ## MLP
 
@@ -89,12 +96,12 @@ y_test_xgboost = model.predict(X_test)
 # df_year_estacion_mostres --> per cada mostra a quina fila ha d'accedir
 
 ## Dataset creation
-dataset_train = MyDataset(y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres)
-dataset_validation = MyDataset(y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres)
+dataset_train = MyDataset(y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
+dataset_validation = MyDataset(y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
 
 ## Dataloader creation
 dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
-dataloader_validation = DataLoader(dataset_validation, batch_size=32, shuffle=False)
+dataloader_validation = DataLoader(dataset_validation, batch_size=len(y_test_xgboost), shuffle=False)
 
 
 ## MLP MODEL CREATION
@@ -108,12 +115,12 @@ def initialize_weights(m):
 # Applying it to our net
 model.apply(initialize_weights)
 
-for name, param in model.named_parameters():
+"""for name, param in model.named_parameters():
     if str(name) == "common_layer.bias":
-        param.data =torch.Tensor([y.mean()])
+        param.data =torch.Tensor([y.mean()])"""
 
 ## Hyperparameters definition
-lr = 1e-2
+lr = 1e-3
 optimizer = optim.Adam(model.parameters(), lr=lr)
 epochs = 50
 

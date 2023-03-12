@@ -32,4 +32,4 @@ def train(model, device, train_loader, optimizer, epoch, loss_function):
     
         loss_values_train += loss.item()
         
-    return loss_values_train
+    return loss_values_train/batch_idx

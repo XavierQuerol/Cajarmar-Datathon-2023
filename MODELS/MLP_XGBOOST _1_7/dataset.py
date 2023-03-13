@@ -34,15 +34,16 @@ class MyDataset(Dataset):
       
       return a,b,c
   
-class MyDataset(Dataset):
+class MyDataset2(Dataset):
  
-  def __init__(self, x_train, y, y_xgboost, df_year_estacion, df_year_estacion_mostres):
+  def __init__(self, x_train, y, y_xgboost, df_year_estacion, df_year_estacion_mostres, superficie):
 
     self.y_train=torch.tensor(y,dtype=torch.float32)
     self.y_xgboost=torch.tensor(y_xgboost,dtype=torch.float32)
     self.df_year_estacion = df_year_estacion
     self.df_year_estacion_mostres = df_year_estacion_mostres
     self.x_train = x_train
+    self.superficie = torch.tensor(superficie,dtype=torch.float32)
     
   def __len__(self):
     return len(self.y_train)
@@ -55,5 +56,6 @@ class MyDataset(Dataset):
       a = torch.cat((torch.from_numpy(self.x_train[idx].astype('float32')), self.df_year_estacion[self.df_year_estacion_mostres[idx]].flatten()))
       b = self.y_xgboost[idx]
       c = self.y_train[idx]
+      d = self.superficie[idx]
       
-      return a,b,c
+      return a,b,c,d

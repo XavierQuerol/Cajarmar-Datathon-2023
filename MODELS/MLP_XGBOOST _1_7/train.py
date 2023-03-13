@@ -40,16 +40,17 @@ def train2(model_prev, model, device, train_loader, optimizer, epoch, loss_funct
     loss_values_train = 0
     
     
-    for batch_idx, (X_meteo_eto, pred_xgboost, y) in enumerate(train_loader):
+    for batch_idx, (X_meteo_eto, pred_xgboost, y, superficie) in enumerate(train_loader):
         
         
         data1 = X_meteo_eto.to(device)
         data2 = pred_xgboost.to(device)
+        data3 = superficie.to(device)
         target = y.to(device)
         
-        _, output_first_mlp = model_prev(data)
+        _, output_first_mlp = model_prev(data1, data2)
         
-        output, _ = model(data1, data2)
+        output= model(data1, data2, output_first_mlp, data3)
         loss=0.0
         
         loss = loss_function(output.view([-1]), target)

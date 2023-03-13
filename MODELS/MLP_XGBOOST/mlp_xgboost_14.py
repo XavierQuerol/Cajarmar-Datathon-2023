@@ -58,6 +58,11 @@ X = df_train.drop(columns = ["PRODUCCION"])
 X["ID_ESTACION2"] = X["ID_ESTACION"]
 y = df_train["PRODUCCION"]
 
+X_15 = X[df_train["CAMPAÑA"] == "15"].drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+X = X[df_train["CAMPAÑA"].isin(["14", "15"]) == False]
+
+y_15 = y[df_train["CAMPAÑA"] == "15"]
+y = y[df_train["CAMPAÑA"].isin(["14", "15"]) == False]
 
 X_train, X_test, y_train, y_test = train_test_split(X, 
                                                     y, 
@@ -72,6 +77,8 @@ df_year_estacion_mostres_test = "20" + df_X_test["CAMPAÑA"].astype(str)+ "_" + 
 df_X_train = df_X_train.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
 df_X_test = df_X_test.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
 
+
+
 ## XGBOOST
 
 model = xgb.XGBRegressor(
@@ -84,7 +91,11 @@ model = xgb.XGBRegressor(
     colsample_bytree = 0.4,
     n_jobs = -1)
 
-model.fit(df_X_train, y_train)
+X_to_fit = pd.concat([df_X_train, X_15])
+y_to_fit = pd.concat([y_train, y_15])
+
+model.fit(X_to_fit, y_to_fit)
+
 
 y_train_xgboost = model.predict(df_X_train)
 
@@ -157,4 +168,4 @@ for epoch in range(epochs):
         plt.plot(range(len(loss_history_train)), loss_history_train)
         plt.plot(range(len(loss_history_validation)), loss_history_validation)
         plt.show()
-
+        

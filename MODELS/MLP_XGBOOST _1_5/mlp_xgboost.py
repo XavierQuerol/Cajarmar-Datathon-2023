@@ -8,7 +8,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import category_encoders as ce
 from sklearn.preprocessing import LabelEncoder
-from utils import read_tables, pca_func
+from utils_code import read_tables, pca_func
+from sklearn.ensemble import GradientBoostingRegressor
+
+import lightgbm as lgb
+import catboost as cb
 
 from model import Net
 from dataset import MyDataset
@@ -62,31 +66,63 @@ def transform(dataset, columns):
     return dataset
 
 norm_x = transform(X_encoded, ["ALTITUD_MIN", "ALTITUD_DIF"]).values
+X_arr = X.values
 
-X_train, X_test, y_train, y_test = train_test_split(norm_x, 
+X_train_encoded, X_test_encoded, y_train_encoded, y_test_encoded = train_test_split(norm_x, 
                                                     y, 
                                                     test_size = 0.2, 
                                                     random_state = 0)
 
-df_X_train = pd.DataFrame(X_train, columns = X_encoded.columns)
-df_X_test = pd.DataFrame(X_test, columns = X_encoded.columns)
+X_train, X_test, y_train, y_test = train_test_split(X_arr, 
+                                                    y, 
+                                                    test_size = 0.2, 
+                                                    random_state = 0)
+
+
+df_X_train_encoded = pd.DataFrame(X_train_encoded, columns = X_encoded.columns)
+df_X_test_encoded = pd.DataFrame(X_test_encoded, columns = X_encoded.columns)
+df_X_train = pd.DataFrame(X_train, columns = X.columns)
+df_X_test = pd.DataFrame(X_test, columns = X.columns)
+
+
 df_year_estacion_mostres_train = "20" + df_X_train["CAMPAÑA"].astype(str)+ "_" + df_X_train["ID_ESTACION2"].astype(str)
 df_year_estacion_mostres_test = "20" + df_X_test["CAMPAÑA"].astype(str)+ "_" + df_X_test["ID_ESTACION2"].astype(str)
 
 df_X_train = df_X_train.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
 df_X_test = df_X_test.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+df_X_train_encoded = df_X_train_encoded.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+df_X_test_encoded = df_X_test_encoded.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
 
 ## XGBOOST
 
-model = xgb.XGBRegressor(
+model = GradientBoostingRegressor(
     n_estimators= 100, 
     learning_rate = 0.15, 
     max_depth = 40, 
-    min_child_weight = 1, 
-    gamma = 0.1, 
-    booster = "dart",
-    colsample_bytree = 0.4,
-    n_jobs = -1)
+    min_samples_split = 5,
+    min_impurity_decrease = 0.2,
+    min_samples_leaf = 5,
+    )
+
+"""
+model = lgb.LGBMRegressor(
+        n_estimators = 100,
+        learning_rate = 0.15,
+        max_depth = 40,
+        min_child_weight = 0.2,
+        min_split_gain  = 0.5,
+        colsample_bytree = 0.4,   
+    )
+"""
+
+"""model = cb.CatBoostRegressor(
+    loss_function='RMSE',
+    iterations = 200,
+    learning_rate = 0.1,
+    depth = 6,
+    )"""
+
+
 
 model.fit(df_X_train.values, y_train)
 
@@ -100,8 +136,8 @@ y_test_xgboost = model.predict(df_X_test.values)
 # df_year_estacion_mostres --> per cada mostra a quina fila ha d'accedir
 
 ## Dataset creation
-dataset_train = MyDataset(df_X_train.values, y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
-dataset_validation = MyDataset(df_X_test.values, y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
+dataset_train = MyDataset(df_X_train_encoded.values, y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
+dataset_validation = MyDataset(df_X_test_encoded.values, y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
 
 ## Dataloader creation
 dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
@@ -122,17 +158,17 @@ model.apply(initialize_weights)
 
 for name, param in model.named_parameters():
     if str(name) == "common_layer.bias":
-        param.data =torch.Tensor([y.mean()])
+        param.data = torch.Tensor([y.mean()])
 
 ## Hyperparameters definition
-lr = 1e-3
-optimizer = optim.Adam(model.parameters(), lr=lr)
+lr = 1e-2
+optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-4)
 epochs = 50
 
 #optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)
-#scheduler = optim.lr_scheduler.OneCycleLR(optimizer, lr, epochs=epochs, steps_per_epoch=len(validation_loader))
-#scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+#scheduler = optim.lr_scheduler.OneCycleLR(optimizer, lr, epochs=epochs, steps_per_epoch=len(dataloader_validation))
+#♣scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
 loss_history_train = []
 loss_history_validation = []
@@ -163,3 +199,6 @@ for epoch in range(epochs):
         plt.plot(range(len(loss_history_validation)), loss_history_validation)
         plt.show()
 
+### Test model on 20-21
+#y = df_train.loc[(df_train["CAMPAÑA"].isin(["20", "21"])), :]["PRODUCCION"]
+#x = 

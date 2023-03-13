@@ -28,9 +28,9 @@ def read_tables(file):
         for estacion in estacions:
             df_aux = df_meteo_eto.loc[(df_meteo_eto["ID_ESTACION"] == estacion) & (df_meteo_eto["validTimeUtc"].dt.year == year),columns_to_store]
             if year == 2016 or year == 2020:
-                df_aux2 = torch.tensor(df_aux.values, dtype=torch.float32)[1+240:,:]
+                df_aux2 = torch.tensor(df_aux.values, dtype=torch.float32)[1+210:,:]
             else:
-                df_aux2 = torch.tensor(df_aux.values, dtype=torch.float32)[240:,:]
+                df_aux2 = torch.tensor(df_aux.values, dtype=torch.float32)[210:,:]
             meteo_eto_dict[f"{year}_{estacion}"] = df_aux2
             
     return meteo_eto_dict

@@ -27,38 +27,49 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 
 
-## READ DATASETS
+# True si estem fent l'entrenament final amb totes les dades.
+# False si encara estem fent train/validation
+final_train = True
+
+torch.manual_seed(0)
+
+## DATASET METEO-ETO
 
 df_meteo_eto = pd.read_csv("../../DATASETS_TRACTATS/df_meteo_eto.csv")
-df_train = pd.read_csv("../../DATASETS_TRACTATS/TOT_menys14_15.csv")
-
-df_train = df_train.astype({"CAMPAÑA": str, "ID_FINCA": str, "ID_ZONA": str, "ID_ESTACION": str, "VARIEDAD": str, "MODO": str, "TIPO": str, "COLOR": str})
-
-encoder = ce.OrdinalEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "ALTITUD", "VARIEDAD", "COLOR", "TIPO", "MODO"])
-df_train = encoder.fit_transform(df_train)
-
-df_train = df_train[df_train["CAMPAÑA"] != "22"].drop(columns = ["SUPERFICIE", "P/S"])
-
 df_pca = df_meteo_eto.drop(columns = ["validTimeUtc", "ID_ESTACION"])
 pca = PCA(n_components=0.99)
 pdf_fitted = pca.fit(df_pca.values)
-
-
-
 fitxer = "../../DATASETS_TRACTATS/df_meteo_eto.csv"
 df_year_estacion = read_tables(fitxer)
 taula_pca = pca_func(df_year_estacion, pdf_fitted)
 
 
-df_year_estacion_mostres = "20" + df_train["CAMPAÑA"].astype(str)+ "_" + df_train["ID_ESTACION"].astype(str)
+# DATASET TRAIN 
 
+df_train = pd.read_csv("../../DATASETS_FINALS/TOT_menys_14_15.csv")
 
-X = df_train.drop(columns = ["PRODUCCION"])
-X["ID_ESTACION2"] = X["ID_ESTACION"]
+df_train = df_train.astype({"CAMPAÑA": str, "ID_FINCA": str, "ID_ZONA": str, "ID_ESTACION": str, "VARIEDAD": str, "MODO": str, "TIPO": str, "COLOR": str})
+
+df_train = df_train[df_train["CAMPAÑA"] != "22"].drop(columns = ["SUPERFICIE"])
+
+# ORDINAL ENCODING
+encoder = ce.OrdinalEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "ALTITUD", "VARIEDAD", "COLOR", "TIPO", "MODO"])
+df_OrdEnc = encoder.fit_transform(df_train)
+filehandler = open("./trained_models/ordinal_encoder.obj","wb")
+pickle.dump(encoder, filehandler)
+
+X_OrdEnc = df_OrdEnc.drop(columns = ["PRODUCCION", "CAMPAÑA"])
+
 y = df_train["PRODUCCION"]
 
+
+# ONE HOT ENCODING
 encoder = ce.OneHotEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "VARIEDAD", "ALTITUD"])
-X_encoded = encoder.fit_transform(X)
+df_OHEnc = encoder.fit_transform(df_train)
+filehandler = open("./trained_models/one_hot_encoder.obj","wb")
+pickle.dump(encoder, filehandler)
+
+X_OHEnc = df_OHEnc.drop(columns = ["PRODUCCION", "CAMPAÑA"])
 
 ## Normalization
 def transform(dataset, columns):
@@ -66,33 +77,39 @@ def transform(dataset, columns):
         dataset[c] = (dataset[c] - dataset[c].mean()) / dataset[c].std()
     return dataset
 
-norm_x = transform(X_encoded, ["ALTITUD_MIN", "ALTITUD_DIF"])
-X_arr = X.values
+X_OHEnc = transform(X_OHEnc, ["ALTITUD_MIN", "ALTITUD_DIF"])
 
-X_train_encoded, X_test_encoded, y_train_encoded, y_test_encoded = train_test_split(norm_x.values, 
-                                                    y, 
-                                                    test_size = 0.2, 
-                                                    random_state = 0)
-
-X_train, X_test, y_train, y_test = train_test_split(X_arr, 
-                                                    y, 
-                                                    test_size = 0.2, 
-                                                    random_state = 0)
-
-
-df_X_train_encoded = pd.DataFrame(X_train_encoded, columns = X_encoded.columns)
-df_X_test_encoded = pd.DataFrame(X_test_encoded, columns = X_encoded.columns)
-df_X_train = pd.DataFrame(X_train, columns = X.columns)
-df_X_test = pd.DataFrame(X_test, columns = X.columns)
-
-
-df_year_estacion_mostres_train = "20" + df_X_train["CAMPAÑA"].astype(str)+ "_" + df_X_train["ID_ESTACION2"].astype(str)
-df_year_estacion_mostres_test = "20" + df_X_test["CAMPAÑA"].astype(str)+ "_" + df_X_test["ID_ESTACION2"].astype(str)
-
-df_X_train = df_X_train.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
-df_X_test = df_X_test.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
-df_X_train_encoded = df_X_train_encoded.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
-df_X_test_encoded = df_X_test_encoded.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+if final_train:
+    
+    df_year_estacion_mostres_train = df_train["CAMPAÑA_ESTACION"]
+    X_OrdEnc = X_OrdEnc.drop(columns = ["CAMPAÑA_ESTACION"])
+    X_OHEnc = X_OHEnc.drop(columns = ["CAMPAÑA_ESTACION"])
+    
+else:
+    
+    X_train_OrdEnc, X_test_OrdEnc, y_train_OrdEnc, y_test_OrdEnc = train_test_split(X_OrdEnc, 
+                                                                   y, 
+                                                                   test_size = 0.2, 
+                                                                   random_state = 0)
+    
+    X_train_OHEnc, X_test_OHEnc, y_train_OHEnc, y_test_OHEnc = train_test_split(X_OHEnc.values, 
+                                                        y, 
+                                                        test_size = 0.2, 
+                                                        random_state = 0)
+    
+    
+    df_X_train_OrdEnc = pd.DataFrame(X_train_OrdEnc, columns = X_OrdEnc.columns)
+    df_X_test_OrdEnc = pd.DataFrame(X_test_OrdEnc, columns = X_OrdEnc.columns)
+    df_X_train_OHEnc = pd.DataFrame(X_train_OHEnc, columns = X_OHEnc.columns)
+    df_X_test_OHEnc = pd.DataFrame(X_test_OHEnc, columns = X_OHEnc.columns)
+    
+    df_year_estacion_mostres_train = df_X_train_OrdEnc["CAMPAÑA_ESTACION"]
+    df_year_estacion_mostres_test = df_X_train_OrdEnc["CAMPAÑA_ESTACION"]
+    
+    df_X_train_OrdEnc = df_X_train_OrdEnc.drop(columns = ["CAMPAÑA_ESTACION"])
+    df_X_test_OrdEnc = df_X_test_OrdEnc.drop(columns = ["CAMPAÑA_ESTACION"])
+    df_X_train_OHEnc = df_X_train_OHEnc.drop(columns = ["CAMPAÑA_ESTACION"])
+    df_X_test_OHEnc = df_X_test_OHEnc.drop(columns = ["CAMPAÑA_ESTACION"])
 
 ## XGBOOST
 
@@ -105,41 +122,23 @@ model = GradientBoostingRegressor(
     min_samples_leaf = 5,
     )
 
-"""
-model = lgb.LGBMRegressor(
-        n_estimators = 100,
-        learning_rate = 0.15,
-        max_depth = 40,
-        min_child_weight = 0.2,
-        min_split_gain  = 0.5,
-        colsample_bytree = 0.4,   
-    )
-"""
-
-"""model = cb.CatBoostRegressor(
-    loss_function='RMSE',
-    iterations = 200,
-    learning_rate = 0.1,
-    depth = 6,
-    )"""
 
 
-final_train = True
 if final_train:
-    X_gb = X.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
-    model.fit(X_gb, y)
-    y_train_xgboost = model.predict(X_gb)
+    
+    model.fit(X_OrdEnc, y)
+    y_predicted_xgboost_for_train = model.predict(X_OrdEnc)
     
     filehandler = open("./trained_models/gradientboosting.obj","wb")
     pickle.dump(model, filehandler)
     
 else:
     
-    model.fit(df_X_train.values, y_train)
+    model.fit(df_X_train_OrdEnc.values, y_train_OrdEnc)
     
-    y_train_xgboost = model.predict(df_X_train.values)
+    y_predicted_xgboost_for_train = model.predict(df_X_train_OrdEnc.values)
     
-    y_test_xgboost = model.predict(df_X_test.values)
+    y_predicted_xgboost_for_test = model.predict(df_X_test_OrdEnc.values)
 
 ## MLP
 
@@ -148,19 +147,25 @@ else:
 
 ## Dataset creation
 if final_train:
-    df_year_estacion_mostres_final = "20" + norm_x["CAMPAÑA"].astype(str)+ "_" + norm_x["ID_ESTACION2"].astype(str)
-
-    x_enc = norm_x.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
-    dataset_train = MyDataset(x_enc.values, y.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_final.values)
+    
+    dataset_train = MyDataset(X_OHEnc.values, y.values, 
+                              y_predicted_xgboost_for_train, taula_pca, 
+                              df_year_estacion_mostres_train.values)
+    
     dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
 
 else:
-    dataset_train = MyDataset(df_X_train_encoded.values, y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
-    dataset_validation = MyDataset(df_X_test_encoded.values, y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
     
-    ## Dataloader creation
+    dataset_train = MyDataset(df_X_train_OHEnc.values, y_train_OHEnc.values, 
+                              y_predicted_xgboost_for_train, taula_pca, 
+                              df_year_estacion_mostres_train.values)
+    
+    dataset_validation = MyDataset(df_X_test_OHEnc.values, y_test_OHEnc.values, 
+                                   y_predicted_xgboost_for_test, taula_pca, 
+                                   df_year_estacion_mostres_test.values)
+    
     dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
-    dataloader_validation = DataLoader(dataset_validation, batch_size=len(y_test_xgboost), shuffle=False)
+    dataloader_validation = DataLoader(dataset_validation, batch_size=len(y_predicted_xgboost_for_train), shuffle=False)
 
 
 
@@ -182,7 +187,7 @@ for name, param in model.named_parameters():
 ## Hyperparameters definition
 lr = 1e-2
 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-4)
-epochs = 50
+epochs = 8
 
 #optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)

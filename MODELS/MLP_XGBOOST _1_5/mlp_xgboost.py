@@ -10,6 +10,7 @@ import category_encoders as ce
 from sklearn.preprocessing import LabelEncoder
 from utils_code import read_tables, pca_func
 from sklearn.ensemble import GradientBoostingRegressor
+import pickle
 
 import lightgbm as lgb
 import catboost as cb
@@ -65,10 +66,10 @@ def transform(dataset, columns):
         dataset[c] = (dataset[c] - dataset[c].mean()) / dataset[c].std()
     return dataset
 
-norm_x = transform(X_encoded, ["ALTITUD_MIN", "ALTITUD_DIF"]).values
+norm_x = transform(X_encoded, ["ALTITUD_MIN", "ALTITUD_DIF"])
 X_arr = X.values
 
-X_train_encoded, X_test_encoded, y_train_encoded, y_test_encoded = train_test_split(norm_x, 
+X_train_encoded, X_test_encoded, y_train_encoded, y_test_encoded = train_test_split(norm_x.values, 
                                                     y, 
                                                     test_size = 0.2, 
                                                     random_state = 0)
@@ -123,12 +124,22 @@ model = lgb.LGBMRegressor(
     )"""
 
 
-
-model.fit(df_X_train.values, y_train)
-
-y_train_xgboost = model.predict(df_X_train.values)
-
-y_test_xgboost = model.predict(df_X_test.values)
+final_train = True
+if final_train:
+    X_gb = X.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+    model.fit(X_gb, y)
+    y_train_xgboost = model.predict(X_gb)
+    
+    filehandler = open("./trained_models/gradientboosting.obj","wb")
+    pickle.dump(model, filehandler)
+    
+else:
+    
+    model.fit(df_X_train.values, y_train)
+    
+    y_train_xgboost = model.predict(df_X_train.values)
+    
+    y_test_xgboost = model.predict(df_X_test.values)
 
 ## MLP
 
@@ -136,12 +147,20 @@ y_test_xgboost = model.predict(df_X_test.values)
 # df_year_estacion_mostres --> per cada mostra a quina fila ha d'accedir
 
 ## Dataset creation
-dataset_train = MyDataset(df_X_train_encoded.values, y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
-dataset_validation = MyDataset(df_X_test_encoded.values, y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
+if final_train:
+    df_year_estacion_mostres_final = "20" + norm_x["CAMPAÑA"].astype(str)+ "_" + norm_x["ID_ESTACION2"].astype(str)
 
-## Dataloader creation
-dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
-dataloader_validation = DataLoader(dataset_validation, batch_size=len(y_test_xgboost), shuffle=False)
+    x_enc = norm_x.drop(columns = ["CAMPAÑA", "ID_ESTACION2"])
+    dataset_train = MyDataset(x_enc.values, y.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_final.values)
+    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
+
+else:
+    dataset_train = MyDataset(df_X_train_encoded.values, y_train.values, y_train_xgboost, taula_pca, df_year_estacion_mostres_train.values)
+    dataset_validation = MyDataset(df_X_test_encoded.values, y_test.values, y_test_xgboost, taula_pca, df_year_estacion_mostres_test.values)
+    
+    ## Dataloader creation
+    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True)
+    dataloader_validation = DataLoader(dataset_validation, batch_size=len(y_test_xgboost), shuffle=False)
 
 
 
@@ -181,23 +200,33 @@ loss_function= nn.MSELoss()
 
 for epoch in range(epochs):
     loss_train = train(model, device, dataloader_train, optimizer, epoch, loss_function)
-    loss_validation = test(model, device, dataloader_validation, loss_function)
-                
+    if final_train:
+        print('Epoch: {} \tTrainLoss: {:.6f}'.format(
+            epoch, 
+            loss_train
+            ))
+        PATH = r"trained_models/"
+        torch.save(model.state_dict(), PATH + "model1.pth")
+    else:
+        loss_validation = test(model, device, dataloader_validation, loss_function)
+                    
+        
+        print('Epoch: {} \tTrainLoss: {:.6f}\tValidationLoss: {:.6f}'.format(
+            epoch, 
+            loss_train,
+            loss_validation
+            ))
+        
+        if epoch != 0:
+            loss_history_train.append(loss_train)
+            loss_history_validation.append(loss_validation)
+            plt.plot(range(len(loss_history_train)), loss_history_train)
+            plt.plot(range(len(loss_history_validation)), loss_history_validation)
+            plt.show()
+            
     if scheduler:
         scheduler.step()
-    print('Epoch: {} \tTrainLoss: {:.6f}\tValidationLoss: {:.6f}'.format(
-        epoch, 
-        loss_train,
-        loss_validation
-        ))
-    
-    
-    if epoch != 0:
-        loss_history_train.append(loss_train)
-        loss_history_validation.append(loss_validation)
-        plt.plot(range(len(loss_history_train)), loss_history_train)
-        plt.plot(range(len(loss_history_validation)), loss_history_validation)
-        plt.show()
+        
 
 ### Test model on 20-21
 #y = df_train.loc[(df_train["CAMPAÑA"].isin(["20", "21"])), :]["PRODUCCION"]

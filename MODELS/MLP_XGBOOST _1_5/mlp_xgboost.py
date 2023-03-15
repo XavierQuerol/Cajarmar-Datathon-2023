@@ -11,6 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 from utils_code import read_tables, pca_func
 from sklearn.ensemble import GradientBoostingRegressor
 import pickle
+from sklearn.preprocessing import StandardScaler
 
 import lightgbm as lgb
 import catboost as cb
@@ -29,7 +30,7 @@ from torch.utils.data import DataLoader, random_split
 
 # True si estem fent l'entrenament final amb totes les dades.
 # False si encara estem fent train/validation
-final_train = True
+final_train = False
 
 torch.manual_seed(0)
 
@@ -55,7 +56,7 @@ df_train = df_train[df_train["CAMPAÑA"] != "22"].drop(columns = ["SUPERFICIE"])
 # ORDINAL ENCODING
 encoder = ce.OrdinalEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "ALTITUD", "VARIEDAD", "COLOR", "TIPO", "MODO"])
 df_OrdEnc = encoder.fit_transform(df_train)
-filehandler = open("./trained_models/ordinal_encoder.obj","wb")
+filehandler = open("./trained_models/ordinal_encoder_cas1.obj","wb")
 pickle.dump(encoder, filehandler)
 
 X_OrdEnc = df_OrdEnc.drop(columns = ["PRODUCCION", "CAMPAÑA"])
@@ -66,18 +67,17 @@ y = df_train["PRODUCCION"]
 # ONE HOT ENCODING
 encoder = ce.OneHotEncoder(cols=["ID_FINCA", "ID_ZONA", "ID_ESTACION", "VARIEDAD", "ALTITUD"])
 df_OHEnc = encoder.fit_transform(df_train)
-filehandler = open("./trained_models/one_hot_encoder.obj","wb")
+filehandler = open("./trained_models/one_hot_encoder_cas1.obj","wb")
 pickle.dump(encoder, filehandler)
 
 X_OHEnc = df_OHEnc.drop(columns = ["PRODUCCION", "CAMPAÑA"])
 
 ## Normalization
-def transform(dataset, columns):
-    for c in columns:
-        dataset[c] = (dataset[c] - dataset[c].mean()) / dataset[c].std()
-    return dataset
 
-X_OHEnc = transform(X_OHEnc, ["ALTITUD_MIN", "ALTITUD_DIF"])
+scaler = StandardScaler()
+X_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF"]] = scaler.fit_transform(X_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF"]])
+filehandler = open("./trained_models/scaler_cas1.obj","wb")
+pickle.dump(scaler, filehandler)
 
 if final_train:
     
@@ -90,12 +90,12 @@ else:
     X_train_OrdEnc, X_test_OrdEnc, y_train_OrdEnc, y_test_OrdEnc = train_test_split(X_OrdEnc, 
                                                                    y, 
                                                                    test_size = 0.2, 
-                                                                   random_state = 0)
+                                                                   random_state = 55)
     
     X_train_OHEnc, X_test_OHEnc, y_train_OHEnc, y_test_OHEnc = train_test_split(X_OHEnc.values, 
                                                         y, 
                                                         test_size = 0.2, 
-                                                        random_state = 0)
+                                                        random_state = 55)
     
     
     df_X_train_OrdEnc = pd.DataFrame(X_train_OrdEnc, columns = X_OrdEnc.columns)
@@ -118,8 +118,8 @@ model = GradientBoostingRegressor(
     learning_rate = 0.15, 
     max_depth = 40, 
     min_samples_split = 5,
-    min_impurity_decrease = 0.2,
-    min_samples_leaf = 5,
+    min_impurity_decrease = 0.05,
+    min_samples_leaf = 2,
     )
 
 
@@ -129,7 +129,7 @@ if final_train:
     model.fit(X_OrdEnc, y)
     y_predicted_xgboost_for_train = model.predict(X_OrdEnc)
     
-    filehandler = open("./trained_models/gradientboosting.obj","wb")
+    filehandler = open("./trained_models/gradientboosting_cas1.obj","wb")
     pickle.dump(model, filehandler)
     
 else:
@@ -185,14 +185,14 @@ for name, param in model.named_parameters():
         param.data = torch.Tensor([y.mean()])
 
 ## Hyperparameters definition
-lr = 1e-2
-optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-4)
-epochs = 8
+lr = 1e-3
+optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-5)
+epochs = 20
 
 #optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)
+#scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.33)
 #scheduler = optim.lr_scheduler.OneCycleLR(optimizer, lr, epochs=epochs, steps_per_epoch=len(dataloader_validation))
-#♣scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience = 4)
 
 loss_history_train = []
 loss_history_validation = []
@@ -211,7 +211,7 @@ for epoch in range(epochs):
             loss_train
             ))
         PATH = r"trained_models/"
-        torch.save(model.state_dict(), PATH + "model1.pth")
+        torch.save(model.state_dict(), PATH + f"model_cas1_{epoch}.pth")
     else:
         loss_validation = test(model, device, dataloader_validation, loss_function)
                     
@@ -230,7 +230,7 @@ for epoch in range(epochs):
             plt.show()
             
     if scheduler:
-        scheduler.step()
+        scheduler.step(loss_train)
         
 
 ### Test model on 20-21

@@ -22,17 +22,19 @@ import pickle
 ## READ models
 PATH = "trained_models/"
 model = Net()
-model.load_state_dict(torch.load(PATH + "model1.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(PATH + "model_cas1.pth", map_location=torch.device('cpu')))
 
-file = open("./trained_models/gradientboosting.obj", "rb")
+file = open("./trained_models/gradientboosting_cas1.obj", "rb")
 model_gradient = pickle.load(file)
 
-file = open("./trained_models/ordinal_encoder.obj", "rb")
+file = open("./trained_models/ordinal_encoder_cas1.obj", "rb")
 ordinal_encoder = pickle.load(file)
 
-file = open("./trained_models/one_hot_encoder.obj", "rb")
+file = open("./trained_models/one_hot_encoder_cas1.obj", "rb")
 one_hot_encoder = pickle.load(file)
 
+file = open("./trained_models/scaler_cas3_cas1.obj", "rb")
+scaler = pickle.load(file)
 
 ## DATASET METEO-ETO
 
@@ -64,13 +66,8 @@ df_22_OrdEnc = df_22_OrdEnc.drop(columns = ["PRODUCCION", "CAMPAÑA_ESTACION", "
 df_22_OHEnc = df_22_OHEnc.drop(columns = ["PRODUCCION", "CAMPAÑA_ESTACION", "CAMPAÑA"])
 
 
-## Normalization
-def transform(dataset, columns):
-    for c in columns:
-        dataset[c] = (dataset[c] - dataset[c].mean()) / dataset[c].std()
-    return dataset
+df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF", "SUPERFICIE"]] = scaler.transform(df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF", "SUPERFICIE"]])
 
-norm_x = transform(df_22_OHEnc, ["ALTITUD_MIN", "ALTITUD_DIF"])
 
 
 y_predicted_xgboost_for_train = model_gradient.predict(df_22_OrdEnc)

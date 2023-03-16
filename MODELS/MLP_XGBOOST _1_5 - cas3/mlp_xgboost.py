@@ -115,12 +115,13 @@ else:
 
 model = GradientBoostingRegressor(
     n_estimators= 100, 
-    learning_rate = 0.15, 
+    learning_rate = 0.35, 
     max_depth = 40, 
-    min_samples_split = 5,
-    min_impurity_decrease = 0.05,
-    min_samples_leaf = 2,
+    min_samples_split = 25,
+    min_impurity_decrease = 0.1,
+    min_samples_leaf = 30,
     )
+
 
 
 

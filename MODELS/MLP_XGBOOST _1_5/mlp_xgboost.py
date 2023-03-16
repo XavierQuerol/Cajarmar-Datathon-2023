@@ -90,12 +90,12 @@ else:
     X_train_OrdEnc, X_test_OrdEnc, y_train_OrdEnc, y_test_OrdEnc = train_test_split(X_OrdEnc, 
                                                                    y, 
                                                                    test_size = 0.2, 
-                                                                   random_state = 55)
+                                                                   random_state = 3)
     
     X_train_OHEnc, X_test_OHEnc, y_train_OHEnc, y_test_OHEnc = train_test_split(X_OHEnc.values, 
                                                         y, 
                                                         test_size = 0.2, 
-                                                        random_state = 55)
+                                                        random_state = 3)
     
     
     df_X_train_OrdEnc = pd.DataFrame(X_train_OrdEnc, columns = X_OrdEnc.columns)

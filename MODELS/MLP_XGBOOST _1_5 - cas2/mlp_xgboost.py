@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader, random_split
 
 # True si estem fent l'entrenament final amb totes les dades.
 # False si encara estem fent train/validation
-final_train = True
+final_train = False
 
 torch.manual_seed(0)
 
@@ -91,12 +91,12 @@ else:
     X_train_OrdEnc, X_test_OrdEnc, y_train_OrdEnc, y_test_OrdEnc = train_test_split(X_OrdEnc, 
                                                                    y, 
                                                                    test_size = 0.2, 
-                                                                   random_state = 0)
+                                                                   random_state = 3)
     
     X_train_OHEnc, X_test_OHEnc, y_train_OHEnc, y_test_OHEnc = train_test_split(X_OHEnc.values, 
                                                         y, 
                                                         test_size = 0.2, 
-                                                        random_state = 0)
+                                                        random_state = 3)
     
     
     df_X_train_OrdEnc = pd.DataFrame(X_train_OrdEnc, columns = X_OrdEnc.columns)
@@ -116,13 +116,12 @@ else:
 
 model = GradientBoostingRegressor(
     n_estimators= 100, 
-    learning_rate = 0.15, 
+    learning_rate = 0.35, 
     max_depth = 40, 
-    min_samples_split = 5,
-    min_impurity_decrease = 0.05,
-    min_samples_leaf = 2,
+    min_samples_split = 25,
+    min_impurity_decrease = 0.1,
+    min_samples_leaf = 30,
     )
-
 
 
 if final_train:

@@ -22,7 +22,7 @@ import pickle
 ## READ models
 PATH = "trained_models/"
 model = Net()
-model.load_state_dict(torch.load(PATH + "model_cas1.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(PATH + "model_cas1_6.pth", map_location=torch.device('cpu')))
 
 file = open("./trained_models/gradientboosting_cas1.obj", "rb")
 model_gradient = pickle.load(file)
@@ -33,7 +33,7 @@ ordinal_encoder = pickle.load(file)
 file = open("./trained_models/one_hot_encoder_cas1.obj", "rb")
 one_hot_encoder = pickle.load(file)
 
-file = open("./trained_models/scaler_cas3_cas1.obj", "rb")
+file = open("./trained_models/scaler_cas1.obj", "rb")
 scaler = pickle.load(file)
 
 ## DATASET METEO-ETO
@@ -66,7 +66,7 @@ df_22_OrdEnc = df_22_OrdEnc.drop(columns = ["PRODUCCION", "CAMPAÑA_ESTACION", "
 df_22_OHEnc = df_22_OHEnc.drop(columns = ["PRODUCCION", "CAMPAÑA_ESTACION", "CAMPAÑA"])
 
 
-df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF", "SUPERFICIE"]] = scaler.transform(df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF", "SUPERFICIE"]])
+df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF"]] = scaler.transform(df_22_OHEnc[["ALTITUD_MIN", "ALTITUD_DIF"]])
 
 
 

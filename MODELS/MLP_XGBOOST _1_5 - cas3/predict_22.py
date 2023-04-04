@@ -22,7 +22,7 @@ import pickle
 ## READ models
 PATH = "trained_models/"
 model = Net()
-model.load_state_dict(torch.load(PATH + "model_cas3.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(PATH + "model_cas3_30.pth", map_location=torch.device('cpu')))
 
 file = open("./trained_models/gradientboosting_cas3.obj", "rb")
 model_gradient = pickle.load(file)

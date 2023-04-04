@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader, random_split
 
 # True si estem fent l'entrenament final amb totes les dades.
 # False si encara estem fent train/validation
-final_train = False
+final_train = True
 
 torch.manual_seed(0)
 
@@ -90,12 +90,12 @@ else:
     X_train_OrdEnc, X_test_OrdEnc, y_train_OrdEnc, y_test_OrdEnc = train_test_split(X_OrdEnc, 
                                                                    y, 
                                                                    test_size = 0.2, 
-                                                                   random_state = 5)
+                                                                   random_state = 0)
     
     X_train_OHEnc, X_test_OHEnc, y_train_OHEnc, y_test_OHEnc = train_test_split(X_OHEnc.values, 
                                                         y, 
                                                         test_size = 0.2, 
-                                                        random_state = 5)
+                                                        random_state =0)
     
     
     df_X_train_OrdEnc = pd.DataFrame(X_train_OrdEnc, columns = X_OrdEnc.columns)
@@ -211,7 +211,7 @@ for epoch in range(epochs):
             loss_train
             ))
         PATH = r"trained_models/"
-        torch.save(model.state_dict(), PATH + "model_cas1.pth")
+        torch.save(model.state_dict(), PATH + f"model{epoch}.pth")
     else:
         loss_validation = test(model, device, dataloader_validation, loss_function)
                     
